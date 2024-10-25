@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Translate - AI-Powered Video Subtitles</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <style>
+        select option {
+            width: auto;
+            min-width: max-content;
+        }
+        .nav-link {
+            width: 80px;
+            text-align: center;
+        }
+        .get-started-btn {
+            width: 140px;
+            text-align: center;
+            white-space: nowrap;
+        }
+        .hero-title {
+            min-height: 120px;
+        }
+        .feature-desc {
+            min-height: 48px;
+        }
+        .pricing-feature {
+            min-height: 24px;
+        }
+        .hero-btn {
+            width: 192px; /* w-48 equivalent */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+        }
+    </style>
+    <script>
+        function changeLanguage(lang) {
+            const elements = document.querySelectorAll('[data-en], [data-ko]');
+            elements.forEach(el => {
+                const originalClasses = el.getAttribute('class');
+                el.textContent = el.dataset[lang];
+                if (originalClasses) {
+                    el.setAttribute('class', originalClasses);
+                }
+            });
+        }
+    </script>
+</head>
+<body class="bg-gray-50">
+    <!-- Hero Section -->
+    <header class="bg-white">
+        <nav class="container mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="text-2xl font-bold text-red-600">YouTube Translate</div>
+                <div class="hidden md:flex space-x-8">
+                    <a href="#features" class="nav-link text-gray-600 hover:text-gray-900" data-en="Features" data-ko="기능">Features</a>
+                    <a href="#pricing" class="nav-link text-gray-600 hover:text-gray-900" data-en="Pricing" data-ko="가격">Pricing</a>
+                    <a href="#contact" class="nav-link text-gray-600 hover:text-gray-900" data-en="Contact" data-ko="문의하기">Contact</a>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <select 
+                        onchange="changeLanguage(this.value)" 
+                        class="bg-transparent border border-gray-300 text-sm w-20 px-1 py-1 text-gray-600 hover:border-gray-400 focus:outline-none focus:ring-0 focus:border-gray-400 rounded-none cursor-pointer appearance-none"
+                        style="background: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23666666%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E') right 0.3rem center/8px 10px no-repeat"
+                    >
+                        <option value="en">English</option>
+                        <option value="ko">한국어</option>
+                    </select>
+                    <button class="get-started-btn bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700" data-en="Get Started" data-ko="시작하기">Get Started</button>
+                </div>
+            </div>
+        </nav>
+        
+        <div class="container mx-auto px-6 py-16 text-center">
+            <h1 class="hero-title text-5xl font-bold text-gray-900 mb-4" data-en="Reach a Global Audience with AI-Powered Video Translations" data-ko="AI 기반 동영상 번역으로 전 세계 시청자와 만나보세요">
+                Reach a Global Audience with AI-Powered Video Translations
+            </h1>
+            <p class="text-xl text-gray-600 mb-8" data-en="Transform your YouTube content with automatic subtitle translations in over 100 languages" data-ko="100개 이상의 언어로 YouTube 콘텐츠를 자동 번역하세요">
+                Transform your YouTube content with automatic subtitle translations in over 100 languages
+            </p>
+            <div class="flex justify-center space-x-4">
+                <button class="hero-btn bg-red-600 text-white px-8 py-3 rounded-lg text-lg hover:bg-red-700" data-en="Try For Free" data-ko="무료로 시작하기">
+                    Try For Free
+                </button>
+                <button class="hero-btn border border-red-600 text-red-600 px-8 py-3 rounded-lg text-lg hover:bg-red-50" data-en="Watch Demo" data-ko="데모 보기">
+                    Watch Demo
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Features Section -->
+    <section id="features" class="py-20 bg-white">
+        <div class="container mx-auto px-6">
+            <h2 class="text-3xl font-bold text-center text-gray-900 mb-16" data-en="Why Choose YouTube Translate?" data-ko="YouTube Translate를 선택하는 이유">Why Choose YouTube Translate?</h2>
+            <div class="grid md:grid-cols-3 gap-12">
+                <div class="text-center">
+                    <div class="bg-red-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2" data-en="AI-Powered Accuracy" data-ko="AI 기반 정확도">AI-Powered Accuracy</h3>
+                    <p class="feature-desc text-gray-600" data-en="State-of-the-art machine learning for precise translations that sound natural" data-ko="자연스러운 번역을 위한 최첨단 AI 기술">
+                        State-of-the-art machine learning for precise translations that sound natural
+                    </p>
+                </div>
+                <div class="text-center">
+                    <div class="bg-red-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2" data-en="Lightning Fast" data-ko="빠른 처리 속도">Lightning Fast</h3>
+                    <p class="feature-desc text-gray-600" data-en="Get translations in minutes, not days. Perfect for time-sensitive content" data-ko="며칠이 아닌 몇 분 만에 번역 완성. 시간에 민감한 콘텐츠에 적합">
+                        Get translations in minutes, not days. Perfect for time-sensitive content
+                    </p>
+                </div>
+                <div class="text-center">
+                    <div class="bg-red-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2" data-en="100+ Languages" data-ko="100개 이상의 언어">100+ Languages</h3>
+                    <p class="feature-desc text-gray-600" data-en="Reach viewers worldwide with support for all major languages" data-ko="모든 주요 언어 지원으로 전 세계 시청자와 소통">
+                        Reach viewers worldwide with support for all major languages
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section id="pricing" class="py-20 bg-gray-50">
+        <div class="container mx-auto px-6">
+            <h2 class="text-3xl font-bold text-center text-gray-900 mb-16" data-en="Simple, Transparent Pricing" data-ko="심플하고 투명한 가격 정책">Simple, Transparent Pricing</h2>
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="bg-white p-8 rounded-lg shadow-lg">
+                    <h3 class="text-2xl font-bold mb-4" data-en="Starter" data-ko="스타터">Starter</h3>
+                    <p class="text-4xl font-bold mb-4">$29<span class="text-lg text-gray-600">/mo</span></p>
+                    <ul class="space-y-3 mb-8">
+                        <li class="flex items-center pricing-feature">
+                            <svg class="w-5 h-5 text-green-500 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            <span data-en="Up to 5 videos/month" data-ko="월 5개 영상까지">Up to 5 videos/month</span>
+                        </li>
+                        <li class="flex items-center pricing-feature">
+                            <svg class="w-5 h-5 text-green-500 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            <span data-en="10 languages" data-ko="10개 언어">10 languages</span>
+                        </li>
+                    </ul>
+                    <button class="get-started-btn w-full bg-red-600 text-white py-2 rounded-lg hover:bg-red-700" data-en="Get Started" data-ko="시작하기">Get Started</button>
+                </div>
+                <div class="bg-white p-8 rounded-lg shadow-lg border-2 border-red-600 transform scale-105">
+                    <h3 class="text-2xl font-bold mb-4" data-en="Professional" data-ko="프로페셔널">Professional</h3>
+                    <p class="text-4xl font-bold mb-4">$99<span class="text-lg text-gray-600">/mo</span></p>
+                    <ul class="space-y-3 mb-8">
+                        <li class="flex items-center pricing-feature">
+                            <svg class="w-5 h-5 text-green-500 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            <span data-en="Up to 20 videos/month" data-ko="월 20개 영상까지">Up to 20 videos/month</span>
+                        </li>
+                        <li class="flex items-center pricing-feature">
+                            <svg class="w-5 h-5 text-green-500 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            <span data-en="50 languages" data-ko="50개 언어">50 languages</span>
+                        </li>
+                    </ul>
+                    <button class="get-started-btn w-full bg-red-600 text-white py-2 rounded-lg hover:bg-red-700" data-en="Get Started" data-ko="시작하기">Get Started</button>
+                </div>
+                <div class="bg-white p-8 rounded-lg shadow-lg">
+                    <h3 class="text-2xl font-bold mb-4" data-en="Enterprise" data-ko="엔터
