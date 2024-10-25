@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Annual Compound Return Calculator</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 600px;
+            margin: 40px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .calculator {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        
+        .home-link {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            color: #4299e1;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .back-link {
+            position: absolute;
+            top: 20px;
+            left: 30px;
+            color: #4299e1;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        
+        .home-link:hover, .back-link:hover {
+            text-decoration: underline;
+        }
+        
+        h1 {
+            color: #2d3748;
+            margin-bottom: 24px;
+            font-size: 24px;
+            padding: 0 100px;
+            text-align: center;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #4a5568;
+            font-weight: 500;
+        }
+
+        .help-text {
+            font-size: 12px;
+            color: #718096;
+            margin-top: 4px;
+        }
+        
+        input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #4299e1;
+            box-shadow: 0 0 0 3px rgba(66,153,225,0.1);
+        }
+        
+        button {
+            background-color: #4299e1;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+        }
+        
+        button:hover {
+            background-color: #3182ce;
+        }
+        
+        .result {
+            margin-top: 20px;
+            padding: 16px;
+            background-color: #ebf8ff;
+            border-radius: 4px;
+            display: none;
+        }
+        
+        .result.visible {
+            display: block;
+        }
+        
+        .error {
+            color: #e53e3e;
+            margin-top: 4px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .details {
+            margin-top: 12px;
+            font-size: 14px;
+            color: #4a5568;
+        }
+
+        .summary {
+            margin-top: 8px;
+            font-size: 14px;
+            color: #4a5568;
+        }
+
+        .footnote {
+            margin-top: 16px;
+            font-size: 12px;
+            color: #718096;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="calculator">
+        <a href="https://tools.brianshin.me" class="back-link">back to tools</a>
+        <a href="https://brianshin.me" class="home-link" target="_blank">brianshin.me</a>
+        <h1>Annual Compound Return Calculator</h1>
+        
+        <form id="calculatorForm">
+            <div class="input-group">
+                <label for="beginBalance">Beginning Balance ($)</label>
+                <input type="number" id="beginBalance" step="0.01" required>
+                <div class="error" id="beginBalanceError">Please enter a valid beginning balance</div>
+            </div>
+
+            <div class="input-group">
+                <label for="cashFlows">Total Deposits/Withdrawals ($)</label>
+                <input type="number" id="cashFlows" step="0.01" value="0">
+                <div class="help-text">Enter positive numbers for deposits, negative for withdrawals</div>
+                <div class="error" id="cashFlowsError">Please enter a valid number</div>
+            </div>
+            
+            <div class="input-group">
+                <label for="endBalance">Ending Balance ($)</label>
+                <input type="number" id="endBalance" step="0.01" required>
+                <div class="error" id="endBalanceError">Please enter a valid ending balance</div>
+            </div>
+            
+            <div class="input-group">
+                <label for="startDate">Start Date</label>
+                <input type="date" id="startDate" required>
+                <div class="error" id="startDateError">Please select a start date</div>
+            </div>
+
+            <div class="input-group">
+                <label for="endDate">End Date</label>
+                <input type="date" id="endDate" required>
+                <div class="error" id="endDateError">Please select an end date</div>
+            </div>
+            
+            <button type="submit">Calculate Return</button>
+        </form>
+        
+        <div class="result" id="result">
+            <div>The annual compound return rate is: <strong id="returnRate"></strong></div>
+            <div class="details" id="periodDetails"></div>
+            <div class="summary" id="cashFlowSummary"></div>
+        </div>
+
+        <div class="footnote">
+            * Returns calculated using IRR methodology with deposits/withdrawals assumed at investment period midpoint.
+        </div>
+    </div>
+
+    <script>
+        function formatDate(date) {
+            return date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+        }
+
+        function formatPercent(value) {
+            return new Intl.NumberFormat('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(value) + '%';
+        }
+
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 2
+            }).format(value);
+        }
+
+        function calculateIRR(initialValue, cashFlow, finalValue, totalYears) {
+            const PRECISION = 0.00001;
+            const MAX_ITERATIONS = 100;
+            let rate = 0.1;
+            let iteration = 0;
+            const midTime = totalYears / 2;
+            
+            while (iteration < MAX_ITERATIONS) {
+                const npv = -initialValue +
+                           cashFlow * Math.pow(1 + rate, -midTime) +
+                           finalValue * Math.pow(1 + rate, -totalYears);
+                
+                const derivativeNPV = -midTime * cashFlow * Math.pow(1 + rate, -(midTime + 1)) +
+                                    -totalYears * finalValue * Math.pow(1 + rate, -(totalYears + 1));
+                
+                const newRate = rate - npv / derivativeNPV;
+                
+                if (Math.abs(newRate - rate) < PRECISION) {
+                    return newRate;
+                }
+                
+                rate = newRate;
+                iteration++;
+            }
+            
+            return null;
+        }
+
+        document.getElementById('calculatorForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            document.querySelectorAll('.error').forEach(error => error.style.display = 'none');
+            
+            const beginBalance = parseFloat(document.getElementById('beginBalance').value);
+            const cashFlows = parseFloat(document.getElementById('cashFlows').value) || 0;
+            const endBalance = parseFloat(document.getElementById('endBalance').value);
+            const startDate = new Date(document.getElementById('startDate').value);
+            const endDate = new Date(document.getElementById('endDate').value);
+            
+            let hasError = false;
+            
+            if (isNaN(beginBalance) || beginBalance <= 0) {
+                document.getElementById('beginBalanceError').style.display = 'block';
+                hasError = true;
+            }
+            
+            if (isNaN(cashFlows)) {
+                document.getElementById('cashFlowsError').style.display = 'block';
+                hasError = true;
+            }
+            
+            if (isNaN(endBalance) || endBalance <= 0) {
+                document.getElementById('endBalanceError').style.display = 'block';
+                hasError = true;
+            }
+            
+            if (!startDate || isNaN(startDate.getTime())) {
+                document.getElementById('startDateError').style.display = 'block';
+                hasError = true;
+            }
+            
+            if (!endDate || isNaN(endDate.getTime())) {
+                document.getElementById('endDateError').style.display = 'block';
+                hasError = true;
+            }
+            
+            if (endDate < startDate) {
+                document.getElementById('endDateError').textContent = 'End date must be after start date';
+                document.getElementById('endDateError').style.display = 'block';
+                hasError = true;
+            }
+            
+            if (hasError) return;
+            
+            const yearsDiff = (endDate - startDate) / (365.25 * 24 * 60 * 60 * 1000);
+            
+            const irr = calculateIRR(beginBalance, cashFlows, endBalance, yearsDiff);
+            const percentage = formatPercent(irr * 100);
+            
+            document.getElementById('returnRate').textContent = percentage;
+            document.getElementById('periodDetails').textContent = 
+                `Investment period: ${formatDate(startDate)} to ${formatDate(endDate)} (${yearsDiff.toFixed(2)} years)`;
+            
+            const cashFlowSummary = document.getElementById('cashFlowSummary');
+            if (cashFlows !== 0) {
+                const flowType = cashFlows > 0 ? 'Deposits' : 'Withdrawals';
+                cashFlowSummary.textContent = `Initial investment: ${formatCurrency(beginBalance)}\n` +
+                    `${flowType}: ${formatCurrency(Math.abs(cashFlows))}\n` +
+                    `Final value: ${formatCurrency(endBalance)}`;
+            } else {
+                cashFlowSummary.textContent = `Initial investment: ${formatCurrency(beginBalance)}\n` +
+                    `Final value: ${formatCurrency(endBalance)}`;
+            }
+            
+            document.getElementById('result').classList.add('visible');
+        });
+
+        document.getElementById('startDate').addEventListener('change', function(e) {
+            document.getElementById('endDate').min = e.target.value;
+        });
+
+        document.getElementById('endDate').addEventListener('change', function(e) {
+            document.getElementById('startDate').max = e.target.value;
+        });
+    </script>
+</body>
+</html>
