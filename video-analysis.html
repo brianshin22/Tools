@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Analysis with Gemini Flash</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.1/flowbite.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .hidden {
+            display: none;
+        }
+        .chat-message {
+            margin-bottom: 1rem;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+        }
+        .user-message {
+            background-color: #e9ecef;
+            margin-left: 20%;
+        }
+        .assistant-message {
+            background-color: #f8f9fa;
+            margin-right: 20%;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-2xl mx-auto bg-white rounded-xl shadow-md p-8">
+        <h1 class="text-2xl font-bold mb-6 text-center">Video Analysis with Gemini Flash</h1>
+
+        <!-- API Key Section -->
+        <div class="mb-6">
+            <div class="flex space-x-2">
+                <input type="password" id="apiKeyInput" 
+                       class="flex-grow p-2 border rounded-md" 
+                       placeholder="Enter your Gemini API Key">
+                <button id="saveApiKey" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded">
+                    Save Key
+                </button>
+                <button id="showApiKey" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded">
+                    👁️
+                </button>
+            </div>
+            <div class="mt-2 text-sm text-gray-600">
+                API Key status: <span id="apiKeyStatus">Not set</span>
+            </div>
+        </div>
+
+        <!-- Video Input Section -->
+        <div class="mb-6">
+            <div class="flex justify-center space-x-4">
+                <button id="uploadBtn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
+                    Upload Video
+                </button>
+                <button id="captureBtn" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">
+                    Capture Video
+                </button>
+            </div>
+            <input type="file" id="videoInput" accept="video/*" class="hidden">
+        </div>
+
+        <!-- Video Preview -->
+        <div class="mb-6">
+            <video id="videoPreview" class="w-full hidden" controls></video>
+            <video id="cameraPreview" class="w-full hidden" autoplay muted></video>
+        </div>
+
+        <!-- Recording Controls -->
+        <div id="recordingControls" class="mb-6 text-center hidden">
+            <button id="startRecording" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded">
+                Start Recording
+            </button>
+            <button id="stopRecording" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded hidden">
+                Stop Recording
+            </button>
+        </div>
+
+        <!-- Chat Section -->
+        <div id="chatContainer" class="border rounded-lg p-4 mb-6 h-96 overflow-y-auto">
+            <!-- Chat messages will be inserted here -->
+        </div>
+
+        <!-- Query Section -->
+        <div class="mb-6">
+            <div class="flex space-x-2">
+                <textarea id="queryInput" class="flex-grow p-2 border rounded-md" rows="2" 
+                          placeholder="Ask a question about the video"></textarea>
+                <button id="analyzeBtn" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded">
+                    Send
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let mediaRecorder;
+        let recordedChunks = [];
+        let chatHistory = [];
+        let fileUri = null;
+        let stream = null;
+        
+        // DOM Elements
+        const apiKeyInput = document.getElementById('apiKeyInput');
+        const saveApiKey = document.getElementById('saveApiKey');
+        const showApiKey = document.getElementById('showApiKey');
+        const apiKeyStatus = document.getElementById('apiKeyStatus');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const captureBtn = document.getElementById('captureBtn');
+        const videoInput = document.getElementById('videoInput');
+        const videoPreview = document.getElementById('videoPreview');
+        const cameraPreview = document.getElementById('cameraPreview');
+        const recordingControls = document.getElementById('recordingControls');
+        const startRecording = document.getElementById('startRecording');
+        const stopRecording = document.getElementById('stopRecording');
+        const queryInput = document.getElementById('queryInput');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const chatContainer = document.getElementById('chatContainer');
+
+        // API Key Management
+        const loadApiKey = () => {
+            const savedKey = localStorage.getItem('geminiApiKey');
+            if (savedKey) {
+                apiKeyInput.value = savedKey;
+                apiKeyStatus.textContent = 'Saved';
+                apiKeyStatus.className = 'text-green-600';
+            } else {
+                apiKeyStatus.textContent = 'Not set';
+                apiKeyStatus.className = 'text-red-600';
+            }
+        };
+
+        saveApiKey.addEventListener('click', () => {
+            const key = apiKeyInput.value.trim();
+            if (key) {
+                localStorage.setItem('geminiApiKey', key);
+                apiKeyStatus.textContent = 'Saved';
+                apiKeyStatus.className = 'text-green-600';
+            } else {
+                alert('Please enter an API key');
+            }
+        });
+
+        showApiKey.addEventListener('mousedown', () => {
+            apiKeyInput.type = 'text';
+        });
+
+        showApiKey.addEventListener('mouseup', () => {
+            apiKeyInput.type = 'password';
+        });
+
+        showApiKey.addEventListener('mouseleave', () => {
+            apiKeyInput.type = 'password';
+        });
+
+        // Chat Functions
+        const addMessageToChat = (message, isUser = false) => {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chat-message ${isUser ? 'user-message' : 'assistant-message'}`;
+            messageDiv.textContent = message;
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            chatHistory.push({ role: isUser ? "user" : "model", message });
+        };
+
+        // Video Upload Function
+        const uploadVideo = async (blob) => {
+            const apiKey = localStorage.getItem('geminiApiKey');
+            if (!apiKey) {
+                throw new Error('API key not found');
+            }
+
+            try {
+                // Step 1: Initialize resumable upload
+                const initResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/files:upload?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Goog-Upload-Protocol': 'resumable',
+                        'X-Goog-Upload-Command': 'start',
+                        'X-Goog-Upload-Header-Content-Length': blob.size,
+                        'X-Goog-Upload-Header-Content-Type': blob.type || 'video/webm'
+                    },
+                    body: JSON.stringify({
+                        file: {
+                            display_name: 'video_upload.webm'
+                        }
+                    })
+                });
+
+                if (!initResponse.ok) {
+                    throw new Error(`Upload initialization failed: ${await initResponse.text()}`);
+                }
+
+                // Get upload URL from response headers
+                const uploadUrl = initResponse.headers.get('X-Goog-Upload-URL');
+                if (!uploadUrl) {
+                    throw new Error('Upload URL not found in response');
+                }
+
+                // Step 2: Upload the video
+                const uploadResponse = await fetch(uploadUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Length': blob.size,
+                        'X-Goog-Upload-Offset': '0',
+                        'X-Goog-Upload-Command': 'upload, finalize'
+                    },
+                    body: blob
+                });
+
+                if (!uploadResponse.ok) {
+                    throw new Error(`Upload failed: ${await uploadResponse.text()}`);
+                }
+
+                const fileInfo = await uploadResponse.json();
+                addMessageToChat("Video uploaded successfully. Processing...", false);
+
+                // Step 3: Wait for processing
+                let state = fileInfo.file.state;
+                while (state === 'PROCESSING') {
+                    await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
+                    const checkResponse = await fetch(
+                        `https://generativelanguage.googleapis.com/v1beta/files/${fileInfo.file.name}?key=${apiKey}`
+                    );
+                    const checkResult = await checkResponse.json();
+                    state = checkResult.file.state;
+                }
+
+                if (state !== 'ACTIVE') {
+                    throw new Error(`Video processing failed: ${state}`);
+                }
+
+                fileUri = fileInfo.file.uri;
+                addMessageToChat("Video processing complete. You can now ask questions about it.", false);
+                return fileUri;
+
+            } catch (error) {
+                console.error('Upload error:', error);
+                throw error;
+            }
+        };
+
+        // Upload Video Handler
+        uploadBtn.addEventListener('click', () => {
+            videoInput.click();
+        });
+
+        videoInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const videoUrl = URL.createObjectURL(file);
+                videoPreview.src = videoUrl;
+                videoPreview.classList.remove('hidden');
+                cameraPreview.classList.add('hidden');
+                recordingControls.classList.add('hidden');
+
+                try {
+                    addMessageToChat("Uploading video...", false);
+                    await uploadVideo(file);
+                } catch (error) {
+                    addMessageToChat(`Error uploading video: ${error.message}`, false);
+                }
+            }
+        });
+
+        // Capture Video Handler
+        captureBtn.addEventListener('click', async () => {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                cameraPreview.srcObject = stream;
+                cameraPreview.classList.remove('hidden');
+                videoPreview.classList.add('hidden');
+                recordingControls.classList.remove('hidden');
+
+                mediaRecorder = new MediaRecorder(stream);
+                recordedChunks = [];
+
+                mediaRecorder.ondataavailable = (e) => {
+                    if (e.data.size > 0) {
+                        recordedChunks.push(e.data);
+                    }
+                };
+
+                mediaRecorder.onstop = async () => {
+                    const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                    const videoUrl = URL.createObjectURL(blob);
+                    videoPreview.src = videoUrl;
+                    videoPreview.classList.remove('hidden');
+                    cameraPreview.classList.add('hidden');
+                    
+                    try {
+                        addMessageToChat("Uploading recorded video...", false);
+                        await uploadVideo(blob);
+                    } catch (error) {
+                        addMessageToChat(`Error uploading video: ${error.message}`, false);
+                    }
+                    
+                    if (stream) {
+                        stream.getTracks().forEach(track => track.stop());
+                    }
+                };
+            } catch (err) {
+                console.error('Error accessing camera:', err);
+                alert('Error accessing camera. Please make sure you have granted camera permissions.');
+            }
+        });
+
+        // Recording Controls
+        startRecording.addEventListener('click', () => {
+            mediaRecorder.start();
+            startRecording.classList.add('hidden');
+            stopRecording.classList.remove('hidden');
+        });
+
+        stopRecording.addEventListener('click', () => {
+            mediaRecorder.stop();
+            startRecording.classList.remove('hidden');
+            stopRecording.classList.add('hidden');
+            recordingControls.classList.add('hidden');
+        });
+
+        // Generate Content
+        const generateContent = async (userInput) => {
+            const apiKey = localStorage.getItem('geminiApiKey');
+            if (!apiKey) {
+                throw new Error('Please enter and save your Gemini API Key first.');
+            }
+
+            if (!fileUri) {
+                throw new Error('Please upload or record a video first.');
+            }
+
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+            
+            try {
+                const requestBody = {
+                    contents: [{
+                        parts: [
+                            {
+                                text: userInput
+                            },
+                            {
+                                file_data: {
+                                    mime_type: "video/webm",
+                                    file_uri: fileUri
+                                }
+                            }
+                        ]
+                    }]
+                };
+
+                console.log('Request Body:', JSON.stringify(requestBody, null, 2));
+
+                const apiResponse = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                if (!apiResponse.ok) {
+                    const errorText = await apiResponse.text();
+                    console.error('API Error Response:', errorText);
+                    throw new Error(`API error ${apiResponse.status}: ${errorText}`);
+                }
+
+                const result = await apiResponse.json();
+                console.log('API Response:', result);
+                
+                if (!result.candidates || !result.candidates[0] || !result.candidates[0].content) {
+                    throw new Error('Invalid response format from API');
+                }
+
+                return result.candidates[0].content.parts[0].text;
+            } catch (error) {
+                console.error('API Error:', error);
+                throw error;
+            }
+        };
+
+        // Handle Send Button Click and Enter Key
+        const handleUserInput = async () => {
+            const userInput = queryInput.value.trim();
+            if (!userInput) return;
+
+            addMessageToChat(userInput, true);
+            queryInput.value = '';
+
+            try {
+                const response = await generateContent(userInput);
+                addMessageToChat(response, false);
+            } catch (error) {
+                addMessageToChat(`Error: ${error.message}`, false);
+            }
+        };
+
+        analyzeBtn.addEventListener('click', handleUserInput);
+        
+        queryInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleUserInput();
+            }
+        });
+
+        // Load API key on startup
+        loadApiKey();
+        
+        // Initial message
+        addMessageToChat("Welcome! Please upload or record a video to start the analysis.", false);
+    </script>
+</body>
+</html>
