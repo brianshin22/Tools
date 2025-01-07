@@ -20,33 +20,10 @@
             position: relative;
         }
         
-        .home-link {
-            position: absolute;
-            top: 20px;
-            right: 30px;
-            color: #4299e1;
-            text-decoration: none;
-            font-size: 14px;
-        }
-
-        .back-link {
-            position: absolute;
-            top: 20px;
-            left: 30px;
-            color: #4299e1;
-            text-decoration: none;
-            font-size: 14px;
-        }
-        
-        .home-link:hover, .back-link:hover {
-            text-decoration: underline;
-        }
-        
         h1 {
             color: #2d3748;
             margin-bottom: 24px;
             font-size: 24px;
-            padding: 0 100px;
             text-align: center;
         }
         
@@ -73,6 +50,7 @@
             border: 1px solid #e2e8f0;
             border-radius: 4px;
             font-size: 16px;
+            box-sizing: border-box;
         }
         
         input:focus {
@@ -95,6 +73,13 @@
         button:hover {
             background-color: #3182ce;
         }
+
+        .error {
+            color: #e53e3e;
+            margin-top: 4px;
+            font-size: 14px;
+            display: none;
+        }
         
         .result {
             margin-top: 20px;
@@ -106,13 +91,6 @@
         
         .result.visible {
             display: block;
-        }
-        
-        .error {
-            color: #e53e3e;
-            margin-top: 4px;
-            font-size: 14px;
-            display: none;
         }
 
         .details {
@@ -137,9 +115,7 @@
 </head>
 <body>
     <div class="calculator">
-        <a href="https://tools.brianshin.me" class="back-link">back to tools</a>
-        <a href="https://brianshin.me" class="home-link" target="_blank">brianshin.me</a>
-        <h1>Annual Compound Return Calculator</h1>
+        <h1>Annual Investment Return Calculator</h1>
         
         <form id="calculatorForm">
             <div class="input-group">
@@ -183,7 +159,7 @@
         </div>
 
         <div class="footnote">
-            * Returns calculated using IRR methodology with deposits/withdrawals assumed at investment period midpoint.
+            * Returns calculated using Time-Weighted Return methodology with deposits/withdrawals adjusted at investment period midpoint.
         </div>
     </div>
 
@@ -209,34 +185,6 @@
                 currency: 'USD',
                 minimumFractionDigits: 2
             }).format(value);
-        }
-
-        function calculateIRR(initialValue, cashFlow, finalValue, totalYears) {
-            const PRECISION = 0.00001;
-            const MAX_ITERATIONS = 100;
-            let rate = 0.1;
-            let iteration = 0;
-            const midTime = totalYears / 2;
-            
-            while (iteration < MAX_ITERATIONS) {
-                const npv = -initialValue +
-                           cashFlow * Math.pow(1 + rate, -midTime) +
-                           finalValue * Math.pow(1 + rate, -totalYears);
-                
-                const derivativeNPV = -midTime * cashFlow * Math.pow(1 + rate, -(midTime + 1)) +
-                                    -totalYears * finalValue * Math.pow(1 + rate, -(totalYears + 1));
-                
-                const newRate = rate - npv / derivativeNPV;
-                
-                if (Math.abs(newRate - rate) < PRECISION) {
-                    return newRate;
-                }
-                
-                rate = newRate;
-                iteration++;
-            }
-            
-            return null;
         }
 
         document.getElementById('calculatorForm').addEventListener('submit', function(e) {
@@ -287,25 +235,43 @@
             
             const yearsDiff = (endDate - startDate) / (365.25 * 24 * 60 * 60 * 1000);
             
-            const irr = calculateIRR(beginBalance, cashFlows, endBalance, yearsDiff);
-            const percentage = formatPercent(irr * 100);
-            
-            document.getElementById('returnRate').textContent = percentage;
-            document.getElementById('periodDetails').textContent = 
-                `Investment period: ${formatDate(startDate)} to ${formatDate(endDate)} (${yearsDiff.toFixed(2)} years)`;
-            
-            const cashFlowSummary = document.getElementById('cashFlowSummary');
-            if (cashFlows !== 0) {
-                const flowType = cashFlows > 0 ? 'Deposits' : 'Withdrawals';
-                cashFlowSummary.textContent = `Initial investment: ${formatCurrency(beginBalance)}\n` +
-                    `${flowType}: ${formatCurrency(Math.abs(cashFlows))}\n` +
-                    `Final value: ${formatCurrency(endBalance)}`;
-            } else {
-                cashFlowSummary.textContent = `Initial investment: ${formatCurrency(beginBalance)}\n` +
-                    `Final value: ${formatCurrency(endBalance)}`;
+            try {
+                // Account for cash flows in middle of period
+                const adjustedEnd = endBalance - cashFlows;
+                
+                // Calculate total return
+                const totalReturn = (adjustedEnd - beginBalance) / beginBalance;
+                
+                // Convert to annual rate
+                const annualRate = (Math.pow(1 + totalReturn, 1/yearsDiff) - 1) * 100;
+                
+                if (isFinite(annualRate) && !isNaN(annualRate)) {
+                    const resultDiv = document.getElementById('result');
+                    document.getElementById('returnRate').textContent = formatPercent(annualRate);
+                    document.getElementById('periodDetails').textContent = 
+                        `Investment period: ${formatDate(startDate)} to ${formatDate(endDate)} (${yearsDiff.toFixed(2)} years)`;
+                    
+                    const cashFlowSummary = document.getElementById('cashFlowSummary');
+                    if (cashFlows !== 0) {
+                        const flowType = cashFlows > 0 ? 'Deposits' : 'Withdrawals';
+                        cashFlowSummary.textContent = `Initial investment: ${formatCurrency(beginBalance)}\n` +
+                            `${flowType}: ${formatCurrency(Math.abs(cashFlows))}\n` +
+                            `Final value: ${formatCurrency(endBalance)}`;
+                    } else {
+                        cashFlowSummary.textContent = `Initial investment: ${formatCurrency(beginBalance)}\n` +
+                            `Final value: ${formatCurrency(endBalance)}`;
+                    }
+                    
+                    resultDiv.classList.add('visible');
+                } else {
+                    throw new Error('Invalid calculation result');
+                }
+            } catch (error) {
+                document.getElementById('returnRate').textContent = 'Error';
+                document.getElementById('periodDetails').textContent = 'Unable to calculate return rate. Please check your inputs.';
+                document.getElementById('cashFlowSummary').textContent = '';
+                document.getElementById('result').classList.add('visible');
             }
-            
-            document.getElementById('result').classList.add('visible');
         });
 
         document.getElementById('startDate').addEventListener('change', function(e) {
